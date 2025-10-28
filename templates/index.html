@@ -6,20 +6,35 @@
     <title>Image Caption Generator</title>
     <style>
       body { font-family: Arial, sans-serif; max-width: 700px; margin: 2rem auto; padding: 1rem; }
-      .preview { max-width: 100%; height: auto; margin-top: 1rem; }
-      .result { margin-top: 1rem; padding: 1rem; background:#f4f4f4; }
+      .preview { max-width: 100%; height: auto; margin-top: 1rem; border-radius: 8px; }
+      .result { margin-top: 1rem; padding: 1rem; background:#f4f4f4; border-radius: 4px; }
+      .error { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
+      .loading { color: #004085; background-color: #cce5ff; border: 1px solid #b8daff; }
+      .success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
+      button { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+      button:disabled { background: #ccc; }
+      .upload-form { margin: 2rem 0; }
+      .status-bar { padding: 0.5rem; margin-bottom: 1rem; border-radius: 4px; font-size: 0.9rem; }
+      .api-error { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
     </style>
   </head>
   <body>
     <h1>Image Caption Generator</h1>
-    <p>Upload an image and the app will generate a descriptive caption.</p>
-    <form id="uploadForm">
+    
+    {% if api_status == "missing" %}
+    <div class="status-bar api-error">
+      ⚠️ API key not configured. Image captioning will not work.
+    </div>
+    {% endif %}
+
+    <p>Upload an image and the app will generate a descriptive caption using the BLIP model.</p>
+    
+    <form id="uploadForm" class="upload-form">
       <input type="file" name="image" id="imageInput" accept="image/*" />
-      <button type="submit">Generate caption</button>
+      <button type="submit" id="submitBtn">Generate caption</button>
     </form>
 
     <img id="preview" class="preview" src="" alt="" style="display:none;" />
-
     <div id="output" class="result" style="display:none;"></div>
 
     <script>
@@ -27,34 +42,68 @@
       const input = document.getElementById('imageInput');
       const preview = document.getElementById('preview');
       const output = document.getElementById('output');
+      const submitBtn = document.getElementById('submitBtn');
+
+      function showMessage(message, type = 'normal') {
+        output.style.display = '';
+        output.textContent = message;
+        output.className = 'result ' + type;
+      }
 
       input.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+          preview.style.display = 'none';
+          return;
+        }
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          showMessage('Please select an image file', 'error');
+          return;
+        }
+
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          showMessage('Image must be less than 5MB', 'error');
+          return;
+        }
+
         preview.src = URL.createObjectURL(file);
         preview.style.display = '';
+        output.style.display = 'none';
       });
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!input.files[0]) {
-          alert('Pick an image first');
+          showMessage('Please select an image first', 'error');
           return;
         }
-        output.style.display = '';
-        output.textContent = 'Uploading and generating caption...';
+
+        submitBtn.disabled = true;
+        showMessage('Generating caption... This may take a few seconds.', 'loading');
+        
         const fd = new FormData();
         fd.append('image', input.files[0]);
+        
         try {
           const res = await fetch('/caption', { method: 'POST', body: fd });
           const data = await res.json();
+          
           if (res.ok) {
-            output.textContent = 'Caption: ' + data.caption;
+            showMessage('Caption: ' + data.caption, 'success');
           } else {
-            output.textContent = 'Error: ' + (data.error || JSON.stringify(data));
+            if (res.status === 503) {
+              showMessage('Model is still loading, please try again in a few seconds', 'error');
+            } else {
+              showMessage('Error: ' + (data.detail || data.error || 'Unknown error'), 'error');
+            }
           }
         } catch (err) {
-          output.textContent = 'Error: ' + err.message;
+          showMessage('Network error: ' + err.message, 'error');
+        } finally {
+          submitBtn.disabled = false;
         }
       });
     </script>
