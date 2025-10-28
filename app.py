@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from PIL import Image
 import io
 import torch
+import os
 
 from transformers import BlipProcessor, BlipForConditionalGeneration
 
@@ -46,6 +47,5 @@ def caption():
     return jsonify({"caption": caption_text})
 
 
-if __name__ == "__main__":
-    # Run development server
-    app.run(host="0.0.0.0", port=5000, debug=True)
+# Vercel requires "app" to be the handler
+app.debug = False
