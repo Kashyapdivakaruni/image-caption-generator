@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Image Caption Generator</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 700px; margin: 2rem auto; padding: 1rem; }
+      .preview { max-width: 100%; height: auto; margin-top: 1rem; }
+      .result { margin-top: 1rem; padding: 1rem; background:#f4f4f4; }
+    </style>
+  </head>
+  <body>
+    <h1>Image Caption Generator</h1>
+    <p>Upload an image and the app will generate a descriptive caption.</p>
+    <form id="uploadForm">
+      <input type="file" name="image" id="imageInput" accept="image/*" />
+      <button type="submit">Generate caption</button>
+    </form>
+
+    <img id="preview" class="preview" src="" alt="" style="display:none;" />
+
+    <div id="output" class="result" style="display:none;"></div>
+
+    <script>
+      const form = document.getElementById('uploadForm');
+      const input = document.getElementById('imageInput');
+      const preview = document.getElementById('preview');
+      const output = document.getElementById('output');
+
+      input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = '';
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!input.files[0]) {
+          alert('Pick an image first');
+          return;
+        }
+        output.style.display = '';
+        output.textContent = 'Uploading and generating caption...';
+        const fd = new FormData();
+        fd.append('image', input.files[0]);
+        try {
+          const res = await fetch('/caption', { method: 'POST', body: fd });
+          const data = await res.json();
+          if (res.ok) {
+            output.textContent = 'Caption: ' + data.caption;
+          } else {
+            output.textContent = 'Error: ' + (data.error || JSON.stringify(data));
+          }
+        } catch (err) {
+          output.textContent = 'Error: ' + err.message;
+        }
+      });
+    </script>
+  </body>
+</html>
