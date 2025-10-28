@@ -1,8 +1,8 @@
-flask==2.0.1
-transformers==4.21.0
-torch==1.9.0+cpu
-torchvision==0.10.0+cpu
---find-links https://download.pytorch.org/whl/torch_stable.html
-Pillow==8.3.1
-requests==2.26.0
-gunicorn==20.1.0
+flask>=2.0.1
+transformers>=4.21.0
+torch>=2.0.0
+torchvision>=0.15.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+Pillow>=8.3.1
+requests>=2.26.0
+gunicorn>=20.1.0
